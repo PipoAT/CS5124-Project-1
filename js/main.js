@@ -1,81 +1,114 @@
-async function drawChart() {
-    const jobsData = await d3.csv('data/jobs.csv');
-    const peopleData = await d3.csv('data/People.csv');
+const width = 800;
+const height = 600;
 
-    console.log("Jobs Data:", jobsData);
-    console.log("People Data:", peopleData);
+// Set up the color scale for choropleth map
+const colorScale = d3.scaleSequential(d3.interpolateBlues).domain([0, 100]);
 
-    // Convert to numeric values and validate
-    jobsData.forEach(d => { 
-        d.NumUnemployed2020 = +d.NumUnemployed2020;
-        if (isNaN(d.NumUnemployed2020)) {
-            console.warn("Invalid NumUnemployed2020:", d);
+// Load data for the bar charts
+d3.csv('data/national_health_data_2024.csv').then(socioData => {
+
+    // Ensure the data is properly parsed (especially numeric data)
+    socioData.forEach(d => {
+        d.PovertyRate = +d.PovertyRate;
+        d.UnemploymentRate = +d.UnemploymentRate;
+    });
+
+    // Create the histogram for the poverty rate
+    const histogramSvg = d3.select('body').append('svg')
+        .attr('width', width)
+        .attr('height', 300)
+        .attr('class', 'histogram');
+
+    const xScale = d3.scaleLinear().domain([0, 100]).range([0, width - 40]);
+    const yScale = d3.scaleLinear().range([300, 0]);
+
+    const histogram = d3.histogram()
+        .domain(xScale.domain())
+        .thresholds(xScale.ticks(20))
+        .value(d => d.PovertyRate);
+
+    const bins = histogram(socioData);
+
+    yScale.domain([0, d3.max(bins, d => d.length)]);
+
+    histogramSvg.append('g')
+        .selectAll('rect')
+        .data(bins)
+        .enter().append('rect')
+        .attr('x', d => xScale(d.x0) + 10)
+        .attr('y', d => yScale(d.length))
+        .attr('width', d => xScale(d.x1) - xScale(d.x0) - 10)
+        .attr('height', d => 300 - yScale(d.length))
+        .attr('fill', '#4682B4')
+        .attr('stroke', '#fff');
+
+    histogramSvg.append('g')
+        .attr('transform', 'translate(0, 300)')
+        .call(d3.axisBottom(xScale));
+
+    histogramSvg.append('g')
+        .call(d3.axisLeft(yScale));
+
+    histogramSvg.append('text')
+        .attr('x', width / 2)
+        .attr('y', 20)
+        .attr('text-anchor', 'middle')
+        .attr('font-size', '16px')
+        .text('Poverty Rate Distribution');
+
+    // Create a scatterplot for poverty vs unemployment
+    const scatterPlotSvg = d3.select('body').append('svg')
+        .attr('width', width)
+        .attr('height', 300)
+        .attr('class', 'scatterplot')
+        .attr('transform', 'translate(0, 350)');  // Move below histogram
+
+    const scatterXScale = d3.scaleLinear().domain([0, 100]).range([0, width - 40]);
+    const scatterYScale = d3.scaleLinear().domain([0, 100]).range([300, 0]);
+
+    scatterPlotSvg.append('g')
+        .selectAll('circle')
+        .data(socioData)
+        .enter().append('circle')
+        .attr('cx', d => scatterXScale(d.PovertyRate))
+        .attr('cy', d => scatterYScale(d.UnemploymentRate))
+        .attr('r', 5)
+        .attr('fill', '#4682B4')
+        .attr('stroke', '#fff');
+
+    scatterPlotSvg.append('g')
+        .attr('transform', 'translate(0, 300)')
+        .call(d3.axisBottom(scatterXScale));
+
+    scatterPlotSvg.append('g')
+        .call(d3.axisLeft(scatterYScale));
+
+    scatterPlotSvg.append('text')
+        .attr('x', width / 2)
+        .attr('y', 20)
+        .attr('text-anchor', 'middle')
+        .attr('font-size', '16px')
+        .text('Poverty vs Unemployment Rate');
+
+    // Add dropdown to select graph type
+    const graphTypeSelect = d3.select('body').append('select')
+        .attr('id', 'graphType')
+        .on('change', updateGraph);
+
+    graphTypeSelect.append('option').attr('value', 'histogram').text('Poverty Rate Histogram');
+    graphTypeSelect.append('option').attr('value', 'scatterplot').text('Poverty vs Unemployment');
+
+    function updateGraph() {
+        const selectedGraph = d3.select('#graphType').property('value');
+        if (selectedGraph === 'histogram') {
+            histogramSvg.style('display', 'block');
+            scatterPlotSvg.style('display', 'none');
+        } else if (selectedGraph === 'scatterplot') {
+            histogramSvg.style('display', 'none');
+            scatterPlotSvg.style('display', 'block');
         }
-    });
-
-    peopleData.forEach(d => {
-        d.AsianNonHispanicNum2020 = +d.AsianNonHispanicNum2020;
-        d.WhiteNonHispanicNum2020 = +d.WhiteNonHispanicNum2020;
-        d.BlackNonHispanicNum2020 = +d.BlackNonHispanicNum2020;
-    });
-
-    const margin = { top: 20, right: 30, bottom: 50, left: 70 },
-        width = 800 - margin.left - margin.right,
-        height = 400 - margin.top - margin.bottom;
-
-    const svg = d3.select("body")
-        .append("svg")
-        .attr("width", width + margin.left + margin.right)
-        .attr("height", height + margin.top + margin.bottom)
-        .append("g")
-        .attr("transform", `translate(${margin.left},${margin.top})`);
-
-    const xMax = d3.max(jobsData, d => isNaN(d.NumUnemployed2020) ? 0 : d.NumUnemployed2020) || 1;
-    const x = d3.scaleLinear()
-        .domain([0, xMax * 1.1])
-        .range([0, width]);
-
-    svg.append("g")
-        .attr("transform", `translate(0,${height})`)
-        .call(d3.axisBottom(x));
-
-    const yMax = d3.max(peopleData, d => 
-        Math.max(d.AsianNonHispanicNum2020, d.WhiteNonHispanicNum2020, d.BlackNonHispanicNum2020)
-    ) || 1;
-    const y = d3.scaleLinear()
-        .domain([0, yMax * 1.1])
-        .range([height, 0]);
-
-    svg.append("g").call(d3.axisLeft(y));
-
-    function jitter(value, range = 5) {
-        return value + (Math.random() * range - range / 2);
     }
 
-    function plotPoints(className, color, dataKey) {
-        svg.selectAll(`circle.${className}`)
-            .data(jobsData)
-            .enter()
-            .append("circle")
-            .attr("class", className)
-            .attr("cx", d => {
-                if (isNaN(d.NumUnemployed2020)) {
-                    console.error("Invalid cx value for:", d);
-                    return 0; // Place invalid data at the left-most point
-                }
-                return jitter(x(d.NumUnemployed2020), 10);
-            })
-            .attr("cy", d => {
-                const p = peopleData.find(p => p.id === d.id);
-                return p ? y(p[dataKey]) : y(0);
-            })
-            .attr("r", 5)
-            .style("fill", color);
-    }
-
-    plotPoints("asian", "#69b3a2", "AsianNonHispanicNum2020");
-    plotPoints("white", "blue", "WhiteNonHispanicNum2020");
-    plotPoints("black", "red", "BlackNonHispanicNum2020");
-}
-
-drawChart();
+    // Set initial display
+    updateGraph();
+});
