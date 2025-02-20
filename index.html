@@ -11,8 +11,23 @@
     
     <!-- D3 bundle -->
     <script src="js/d3.v6.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/topojson@3"></script>
 
     <!-- Our JS code -->
     <script src="js/main.js"></script>
+    
+
+
+    <div id="choropleth-container" style="display: flex; justify-content: space-between;">
+        <div id="map1" style="width: 48%; height: 550px;"></div>
+        <div id="map2" style="width: 48%; height: 550px;"></div>
+    </div>
+    
+    <div>
+        <button onclick="toggleAttribute()">Toggle Attribute</button>
+    </div>
+    
+    <div id="tooltip" style="position: absolute; visibility: hidden; background-color: white; padding: 5px; border-radius: 3px; border: 1px solid #ccc; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); font-size: 12px;"></div>
+
 </body>
 </html>
