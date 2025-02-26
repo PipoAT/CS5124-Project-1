@@ -1,240 +1,167 @@
+// Define dimensions and margins
 const width = 800;
 const height = 600;
-const margin = { top: 40, right: 20, bottom: 50, left: 75 }; // Add margins
+const margin = { top: 40, right: 20, bottom: 50, left: 75 };
 
-// Set up the color scale for choropleth map
-const colorScale = d3.scaleSequential(d3.interpolateBlues).domain([0, 100]);
-
-// Load data for the bar charts
-d3.csv('data/national_health_data_2024.csv').then(socioData => {
-
-    // Ensure the data is properly parsed (especially numeric data)
-    socioData.forEach(d => {
+// Load data
+let socioData;
+d3.csv('data/national_health_data_2024.csv').then(data => {
+    data.forEach(d => {
         d.MedianHouseholdIncome = +d.median_household_income;
         d.EducationLessThanHighSchoolPercent = +d.education_less_than_high_school_percent;
-        d.poverty_percent = +d.poverty_perc;
+        d.PovertyPercent = +d.poverty_perc;
+        d.NoHealthInsurancePercent = +d.percent_no_heath_insurance;
     });
+    socioData = data;
+    createUI();
+    updateScatterPlot('EducationLessThanHighSchoolPercent');
+    updateHistogram('EducationLessThanHighSchoolPercent');
+    updateChoropleth('EducationLessThanHighSchoolPercent');
+});
 
-    // Create the histogram for Median Household Income
-    const histogramSvg = d3.select('body').append('svg')
-        .attr('width', width + margin.left + margin.right)
-        .attr('height', 350 + margin.top + margin.bottom)
-        .attr('class', 'histogram')
-        .style('margin-bottom', '30px')
-        .style('display', 'inline-block')
-        .append('g')
-        .attr('transform', `translate(${margin.left},${margin.top})`);
+// UI Controls
+function createUI() {
+    const controls = d3.select('body').append('div').attr('class', 'controls');
+    controls.append('label').text('Select Attribute: ');
+    const select = controls.append('select').attr('id', 'attribute-select');
+    const attributes = [
+        { key: 'EducationLessThanHighSchoolPercent', label: 'Education < High School (%)' },
+        { key: 'PovertyPercent', label: 'Poverty (%)' },
+        { key: 'NoHealthInsurancePercent', label: 'No Health Insurance (%)' }
+    ];
+    
+    select.selectAll('option')
+        .data(attributes)
+        .enter().append('option')
+        .attr('value', d => d.key)
+        .text(d => d.label);
 
-    const xScale = d3.scaleLinear().domain([0, d3.max(socioData, d => d.MedianHouseholdIncome)]).range([0, width - 40]);
-    const yScale = d3.scaleLinear().range([300, 0]);
+    select.on('change', function () {
+        updateScatterPlot(this.value);
+        updateHistogram(this.value);
+        updateChoropleth(this.value);
+    });
+}
 
-    const histogram = d3.histogram()
-        .domain(xScale.domain())
-        .thresholds(xScale.ticks(20))
-        .value(d => d.MedianHouseholdIncome);
-
-    const bins = histogram(socioData);
-
-    yScale.domain([0, d3.max(bins, d => d.length)]);
-
-    histogramSvg.append('g')
-        .selectAll('rect')
-        .data(bins)
-        .enter().append('rect')
-        .attr('x', d => xScale(d.x0) + 10)
-        .attr('y', d => yScale(d.length))
-        .attr('width', d => xScale(d.x1) - xScale(d.x0) - 10)
-        .attr('height', d => 300 - yScale(d.length))
-        .attr('fill', '#4682B4')
-        .attr('stroke', '#fff')
-        .attr('rx', 5)
-        .attr('ry', 5);
-
-    // Add bottom axis (x-axis)
-    histogramSvg.append('g')
-        .attr('transform', 'translate(0, 300)')
-        .call(d3.axisBottom(xScale).ticks(10))  // Adjust the number of ticks for better readability
-        .attr('class', 'axis')
-        .style('font-size', '14px');
-
-    // Add left axis (y-axis)
-    histogramSvg.append('g')
-        .call(d3.axisLeft(yScale).ticks(5))  // Adjust the number of ticks for better readability
-        .attr('class', 'axis')
-        .style('font-size', '14px');
-
-    // Title and axis labels for histogram
-    histogramSvg.append('text')
-        .attr('x', width / 2)
-        .attr('y', -10)
-        .attr('text-anchor', 'middle')
-        .attr('font-size', '18px')
-        .attr('font-weight', 'bold')
-        .text('Median Household Income Distribution');
-
-    histogramSvg.append('text')
-        .attr('x', width / 2)
-        .attr('y', 340)
-        .attr('text-anchor', 'middle')
-        .attr('font-size', '16px')
-        .text('Median Household Income ($)');
-
-    histogramSvg.append('text')
-        .attr('x', -150)
-        .attr('y', -40)
-        .attr('transform', 'rotate(-90)')
-        .attr('text-anchor', 'middle')
-        .attr('font-size', '16px')
-        .text('Frequency');
-
-    // Create a scatterplot for Median Household Income vs Education Less Than High School Percent
+// Scatterplot
+function updateScatterPlot(yAttribute) {
+    d3.select('.scatterplot').remove();
     const scatterPlotSvg = d3.select('body').append('svg')
         .attr('width', width + margin.left + margin.right)
-        .attr('height', 350 + margin.top + margin.bottom)
+        .attr('height', height + margin.top + margin.bottom)
         .attr('class', 'scatterplot')
-        .style('display', 'inline-block')
-        .style('margin-bottom', '30px')  // Move below histogram
         .append('g')
         .attr('transform', `translate(${margin.left},${margin.top})`);
-
-    const scatterXScale = d3.scaleLinear().domain([0, d3.max(socioData, d => d.MedianHouseholdIncome)]).range([0, width - 40]);
-    const scatterYScale = d3.scaleLinear().domain([0, 100]).range([300, 0]); // Percentage scale for education
-
+    
+    const scatterXScale = d3.scaleLinear()
+        .domain([0, d3.max(socioData, d => d.MedianHouseholdIncome)])
+        .range([0, width - 40]);
+    
+    const scatterYScale = d3.scaleLinear()
+        .domain([0, d3.max(socioData, d => d[yAttribute])])
+        .range([height - 100, 0]);
+    
     scatterPlotSvg.append('g')
         .selectAll('circle')
         .data(socioData)
         .enter().append('circle')
         .attr('cx', d => scatterXScale(d.MedianHouseholdIncome))
-        .attr('cy', d => scatterYScale(d.EducationLessThanHighSchoolPercent))
+        .attr('cy', d => scatterYScale(d[yAttribute]))
         .attr('r', 5)
         .attr('fill', '#4682B4')
         .attr('stroke', '#fff')
-        .style('opacity', 0.7)
-        .append('title')  // Add tooltip on hover
-        .text(d => `Income: $${d.MedianHouseholdIncome} | Education < High School: ${d.EducationLessThanHighSchoolPercent}%`);
+        .style('opacity', 0.7);
 
-    // Add bottom axis (x-axis) for scatter plot
     scatterPlotSvg.append('g')
-        .attr('transform', 'translate(0, 300)')
-        .call(d3.axisBottom(scatterXScale).ticks(10))  // Adjust the number of ticks for better readability
-        .attr('class', 'axis')
-        .style('font-size', '14px');
+        .attr('transform', `translate(0, ${height - 100})`)
+        .call(d3.axisBottom(scatterXScale).ticks(10));
 
-    // Add left axis (y-axis) for scatter plot
     scatterPlotSvg.append('g')
-        .call(d3.axisLeft(scatterYScale).ticks(5))  // Adjust the number of ticks for better readability
-        .attr('class', 'axis')
-        .style('font-size', '14px');
+        .call(d3.axisLeft(scatterYScale).ticks(5));
+}
 
-    // Title and axis labels for scatter plot
-    scatterPlotSvg.append('text')
-        .attr('x', width / 2)
-        .attr('y', -10)
-        .attr('text-anchor', 'middle')
-        .attr('font-size', '18px')
-        .attr('font-weight', 'bold')
-        .text('Income vs Education Level');
+// Histogram
+function updateHistogram(attribute) {
+    d3.select('.histogram').remove();
+    const histSvg = d3.select('body').append('svg')
+        .attr('width', width)
+        .attr('height', height / 2)
+        .attr('class', 'histogram')
+        .append('g')
+        .attr('transform', `translate(${margin.left},${margin.top})`);
+    
+    const xScale = d3.scaleLinear()
+        .domain([0, d3.max(socioData, d => d[attribute])])
+        .range([0, width - margin.left - margin.right]);
+    
+    const histogram = d3.histogram()
+        .value(d => d[attribute])
+        .domain(xScale.domain())
+        .thresholds(xScale.ticks(20));
 
-    scatterPlotSvg.append('text')
-        .attr('x', width / 2)
-        .attr('y', 340)
-        .attr('text-anchor', 'middle')
-        .attr('font-size', '16px')
-        .text('Median Household Income ($)');
+    const bins = histogram(socioData);
+    const yScale = d3.scaleLinear()
+        .domain([0, d3.max(bins, d => d.length)])
+        .range([height / 2 - margin.bottom, 0]);
 
-    scatterPlotSvg.append('text')
-        .attr('x', -150)
-        .attr('y', -40)
-        .attr('transform', 'rotate(-90)')
-        .attr('text-anchor', 'middle')
-        .attr('font-size', '16px')
-        .text('Education < High School (%)');
-});
+    histSvg.selectAll('rect')
+        .data(bins)
+        .enter().append('rect')
+        .attr('x', d => xScale(d.x0))
+        .attr('y', d => yScale(d.length))
+        .attr('width', d => xScale(d.x1) - xScale(d.x0) - 1)
+        .attr('height', d => height / 2 - margin.bottom - yScale(d.length))
+        .attr('fill', '#4682B4');
 
-// Set up the color scales
-const incomeColorScale = d3.scaleSequential(d3.interpolateBlues).domain([0, 100000]);
-const povertyColorScale = d3.scaleSequential(d3.interpolateReds).domain([0, 100]);
+    histSvg.append('g')
+        .attr('transform', `translate(0,${height / 2 - margin.bottom})`)
+        .call(d3.axisBottom(xScale));
+}
 
-// Data toggling: By default, display income data
-let currentAttribute = 'Median_HH_Inc_ACS';  // Default attribute to display
-
-// Load the data and the map
-Promise.all([
-    d3.json("https://cdn.jsdelivr.net/npm/us-atlas@3/counties-10m.json"),
-    d3.csv('data/Income.csv')
-]).then(([usData, socioData]) => {
-
-    // Parse the socioData
-    socioData.forEach(d => {
-        d.MedianHouseholdIncome = +d.Median_HH_Inc_ACS;
-        d.PovertyRate = +d.Poverty_Rate_ACS;
-        // Add other attributes as necessary
-    });
-
-    // Function to draw the choropleth map
-    function drawChoropleth(mapId, attribute) {
-        const svg = d3.select(`#${mapId}`).append('svg')
-            .attr('width', '100%')
-            .attr('height', '100%');
-
-        const projection = d3.geoAlbersUsa().scale(1000).translate([400, 300]);
-        const path = d3.geoPath().projection(projection);
-
-        // Set up the color scale based on the attribute
-        const colorScale = attribute === 'Median_HH_Inc_ACS' ? incomeColorScale : povertyColorScale;
-
-        // Prepare data for the map
-        const countyData = topojson.feature(usData, usData.objects.counties).features;
-
-        // Join the socioData to the map
-        countyData.forEach(county => {
-            const data = socioData.find(d => d.County === county.properties.name && d.State === county.properties.state);
-            if (!county.properties.name || !county.properties.state) {
-                return;
-            }
-            if (data) {
-                county.value = data[attribute];
-            } else {
-                county.value = 0;
+// Choropleth Map
+function updateChoropleth(attribute) {
+    d3.select('.choropleth').remove();
+    Promise.all([
+        d3.json('data/counties-10m.json'),
+        d3.csv('data/national_health_data_2024.csv')
+    ]).then(data => {
+        const geoData = topojson.feature(data[0], data[0].objects.counties);
+        const countyPopulationData = data[1];
+        
+        // Merge population data with county geometries
+        geoData.features.forEach(d => {
+            for (let i = 0; i < countyPopulationData.length; i++) {
+                if (d.id === countyPopulationData[i].cnty_fips) {
+                    d.properties[attribute] = +countyPopulationData[i][attribute];
+                }
             }
         });
 
-        // Draw the counties with color scale
-        svg.selectAll('path')
-            .data(countyData)
+        const choroplethSvg = d3.select('body').append('svg')
+            .attr('width', width)
+            .attr('height', height / 2)
+            .attr('class', 'choropleth');
+
+        const colorScale = d3.scaleQuantize()
+            .domain([0, d3.max(countyPopulationData, d => +d[attribute])])
+            .range(d3.schemeBlues[9]);
+
+        const path = d3.geoPath();
+
+        choroplethSvg.selectAll('path')
+            .data(topojson.feature(geoData, geoData.objects.counties).features)
             .enter().append('path')
             .attr('d', path)
-            .attr('fill', d => colorScale(d.value))
+            .attr('fill', d => colorScale(d.properties[attribute]))
             .attr('stroke', '#fff')
-            .attr('stroke-width', 0.5);
+            .attr('stroke-width', 0.5)
+            .transition()  // Ensure transition is applied after elements are added
+            .duration(1000)
+            .attr('fill', d => colorScale(d.properties[attribute]));
 
-                const data = socioData.find(x => x.County === d.properties.name && x.State === d.properties.state);
-                if (!d.properties.name || !d.properties.state) {
-                    return;
-                }
-        svg.selectAll('path')
-            .on('mouseover', function(event, d) {
-                const data = socioData.find(x => x.County === d.properties.name && x.State === d.properties.state);
-                const tooltip = d3.select('#tooltip');
-                tooltip.style('visibility', 'visible')
-                    .html(`County: ${d.properties.name}<br>Value: ${data ? data[attribute] : 'No Data'}`);
-            })
-            .on('mouseout', function() {
-                d3.select('#tooltip').style('visibility', 'hidden');
-            });
-    }
+        const choroplethMap = new ChoroplethMap({ 
+            parentElement: '.viz',   
+        }, geoData);
 
-    // Draw the two maps with default attributes
-    drawChoropleth('map1', currentAttribute);
-    drawChoropleth('map2', currentAttribute);
-
-    // Toggle button function to change attributes
-    window.toggleAttribute = function() {
-        currentAttribute = currentAttribute === 'Median_HH_Inc_ACS' ? 'Poverty_Rate_ACS' : 'Median_HH_Inc_ACS';
-        d3.select('#map1').html('');
-        d3.select('#map2').html('');
-        drawChoropleth('map1', currentAttribute);
-        drawChoropleth('map2', currentAttribute);
-    };
-});
-
+    }).catch(error => console.error(error));
+}

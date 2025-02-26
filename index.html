@@ -1,33 +1,53 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>D3 Project Starter Template</title>
-    <meta charset="UTF-8">
-    <link rel="icon" href="data:;base64,iVBORwOKGO=" />
-    <link rel="stylesheet" href="css/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Economic Data in US</title>
+  <link rel="icon" href="data:;base64,iVBORwOKGO=" />
+  <link rel="stylesheet" href="css/style.css">
 </head>
-<body>    
-    <!-- Add HTML content, SVG drawing area, ... -->
-    
-    <!-- D3 bundle -->
-    <script src="js/d3.v6.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/topojson@3"></script>
+<body>
+  <header>
+    <h1>US Economic Data Visualization</h1>
+    <p>Explore how economic factors such as income, education, and health insurance impact different counties across the United States.</p>
+  </header>
+  
+  <nav>
+    <label for="attribute-select">Select Attribute:</label>
+    <select id="attribute-select">
+      <option value="EducationLessThanHighSchoolPercent">Education < HS (%)</option>
+      <option value="poverty_percent">Poverty (%)</option>
+      <option value="percent_no_health_insurance">No Health Insurance (%)</option>
+    </select>
+  </nav>
+  
+  <main>
+    <section class="visualization">
+      <h2>Choropleth Map</h2>
+      <svg height="5" width="5" xmlns="http://www.w3.org/2000/svg" version="1.1"> <defs> <pattern id="lightstripe" patternUnits="userSpaceOnUse" width="5" height="5"> <image xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc1JyBoZWlnaHQ9JzUnPgogIDxyZWN0IHdpZHRoPSc1JyBoZWlnaHQ9JzUnIGZpbGw9J3doaXRlJy8+CiAgPHBhdGggZD0nTTAgNUw1IDBaTTYgNEw0IDZaTS0xIDFMMSAtMVonIHN0cm9rZT0nIzg4OCcgc3Ryb2tlLXdpZHRoPScxJy8+Cjwvc3ZnPg==" x="0" y="0" width="5" height="5"> </image> </pattern> </defs></svg>
 
-    <!-- Our JS code -->
-    <script src="js/main.js"></script>
+      <div id="tooltip"></div>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/d3/5.7.0/d3.min.js"></script>
+    </section>
     
+    <section class="charts">
+      <h2>Data Insights</h2>
+      <div id="chart-container"></div>
+    </section>
+  </main>
+  
+  <footer>
+    <p>Data sourced from national socioeconomic datasets. Visualization powered by D3.js.</p>
+  </footer>
 
-
-    <div id="choropleth-container" style="display: flex; justify-content: space-between;">
-        <div id="map1" style="width: 48%; height: 550px;"></div>
-        <div id="map2" style="width: 48%; height: 550px;"></div>
-    </div>
-    
-    <div>
-        <button onclick="toggleAttribute()">Toggle Attribute</button>
-    </div>
-    
-    <div id="tooltip" style="position: absolute; visibility: hidden; background-color: white; padding: 5px; border-radius: 3px; border: 1px solid #ccc; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); font-size: 12px;"></div>
-
+  <!-- Load D3 v6 from CDN -->
+  <script src="js/d3.v6.min.js"></script>
+  <!-- Load TopoJSON -->
+  <script src="js/topojson.v3.js"></script>
+  <!-- Load custom scripts -->
+  <script src="js/choroplethMap.js"></script>
+  <!-- Main script -->
+  <script src="js/main.js"></script>
 </body>
 </html>
