@@ -16,7 +16,7 @@ d3.csv('data/national_health_data_2024.csv').then(data => {
     createUI();
     updateScatterPlot('EducationLessThanHighSchoolPercent');
     updateHistogram('EducationLessThanHighSchoolPercent');
-    updateChoropleth('EducationLessThanHighSchoolPercent');
+    updateChoropleth('EducationLessThanHighSchoolPercent'); // Call once after data load
 });
 
 // UI Controls
@@ -39,7 +39,7 @@ function createUI() {
     select.on('change', function () {
         updateScatterPlot(this.value);
         updateHistogram(this.value);
-        updateChoropleth(this.value);
+        // updateChoropleth(this.value); // Remove this line to prevent updating the choropleth
     });
 }
 
@@ -125,14 +125,17 @@ function updateChoropleth(attribute) {
         d3.json('data/counties-10m.json'),
         d3.csv('data/national_health_data_2024.csv')
     ]).then(data => {
-        const geoData = topojson.feature(data[0], data[0].objects.counties);
+        const geoData = data[0];
         const countyPopulationData = data[1];
+        console.log("County pop data:", countyPopulationData[0]);
         
         // Merge population data with county geometries
-        geoData.features.forEach(d => {
+        geoData.objects.counties.geometries.forEach(d => {
             for (let i = 0; i < countyPopulationData.length; i++) {
-                if (d.id === countyPopulationData[i].cnty_fips) {
-                    d.properties[attribute] = +countyPopulationData[i][attribute];
+                if (String(d.id) === countyPopulationData[i].cnty_fips) {
+                    d.properties.income = +countyPopulationData[i].median_household_income;
+                    d.properties.poverty = +countyPopulationData[i].poverty_perc;
+                    d.properties.education = +countyPopulationData[i].education_less_than_high_school_percent;
                 }
             }
         });
@@ -147,9 +150,9 @@ function updateChoropleth(attribute) {
             .range(d3.schemeBlues[9]);
 
         const path = d3.geoPath();
-
+        console.log(geoData);
         choroplethSvg.selectAll('path')
-            .data(topojson.feature(geoData, geoData.objects.counties).features)
+            .data(geoData, geoData.objects.counties)
             .enter().append('path')
             .attr('d', path)
             .attr('fill', d => colorScale(d.properties[attribute]))
