@@ -1,6 +1,6 @@
 // Define dimensions and margins
-const width = 800;
-const height = 600;
+const width = 500;
+const height = 400;
 const margin = { top: 40, right: 20, bottom: 50, left: 75 };
 
 // Load data
@@ -78,6 +78,29 @@ function updateScatterPlot(yAttribute) {
 
     scatterPlotSvg.append('g')
         .call(d3.axisLeft(scatterYScale).ticks(5));
+
+        scatterPlotSvg.append('text')
+        .attr('x', width / 2)
+        .attr('y', -10)
+        .attr('text-anchor', 'middle')
+        .attr('font-size', '18px')
+        .attr('font-weight', 'bold')
+        .text('Income vs Education Level');
+
+    scatterPlotSvg.append('text')
+        .attr('x', width / 2)
+        .attr('y', 340)
+        .attr('text-anchor', 'middle')
+        .attr('font-size', '16px')
+        .text('Median Household Income ($)');
+
+    scatterPlotSvg.append('text')
+        .attr('x', -150)
+        .attr('y', -40)
+        .attr('transform', 'rotate(-90)')
+        .attr('text-anchor', 'middle')
+        .attr('font-size', '16px')
+        .text('Education < High School (%)');
 }
 
 // Histogram
@@ -116,6 +139,29 @@ function updateHistogram(attribute) {
     histSvg.append('g')
         .attr('transform', `translate(0,${height / 2 - margin.bottom})`)
         .call(d3.axisBottom(xScale));
+
+    histSvg.append('text')
+        .attr('x', width / 2)
+        .attr('y', -10)
+        .attr('text-anchor', 'middle')
+        .attr('font-size', '18px')
+        .attr('font-weight', 'bold')
+        .text('Median Household Income Distribution');
+
+    histSvg.append('text')
+        .attr('x', width / 2)
+        .attr('y', 340)
+        .attr('text-anchor', 'middle')
+        .attr('font-size', '16px')
+        .text('Median Household Income ($)');
+
+    histSvg.append('text')
+        .attr('x', -150)
+        .attr('y', -40)
+        .attr('transform', 'rotate(-90)')
+        .attr('text-anchor', 'middle')
+        .attr('font-size', '16px')
+        .text('Frequency');
 }
 
 // Choropleth Map
@@ -141,8 +187,6 @@ function updateChoropleth(attribute) {
         });
 
         const choroplethSvg = d3.select('body').append('svg')
-            .attr('width', width)
-            .attr('height', height / 2)
             .attr('class', 'choropleth');
 
         const colorScale = d3.scaleQuantize()
