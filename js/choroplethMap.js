@@ -54,10 +54,10 @@ class ChoroplethMap {
 
     vis.path = d3.geoPath().projection(vis.projection);
 
-    // Ensure density property exists before creating the color scale
-    let densityValues = vis.data.objects.counties.geometries.map(d => d.properties.density || 0);
+    // Ensure pop property exists before creating the color scale
+    let popValues = vis.data.objects.counties.geometries.map(d => d.properties.pop || 0);
     vis.colorScale = d3.scaleLinear()
-      .domain(d3.extent(densityValues))
+      .domain(d3.extent(popValues))
       .range(['#cfe2f2', '#0d306b'])
       .interpolate(d3.interpolateHcl);
 
@@ -85,12 +85,12 @@ class ChoroplethMap {
       .data(topojson.feature(vis.us, vis.us.objects.counties).features)
       .enter().append("path")
       .attr("d", vis.path)
-      .attr("fill", d => vis.colorScale(d.properties.density || 0)) // Use density data for color scale
+      .attr("fill", d => vis.colorScale(d.properties.income || 0)) // Use income data for color scale
       .on('mouseover', (event, d) => {
       vis.tooltip.transition().duration(200).style('opacity', 1);
       vis.tooltip.html(`
         County: ${d.properties.name || 'N/A'}<br>
-        Density: ${d.properties.density || 'N/A'}<br>
+        Median Household Income: $${d.properties.income || 'N/A'}<br>
         Poverty: ${d.properties.poverty || 'N/A'}<br>
         Education Level: ${d.properties.education || 'N/A'}
       `)
