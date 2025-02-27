@@ -144,7 +144,7 @@ function updateHistogram(attribute) {
 
     const histXScale = d3.scaleLinear()
         .domain([0, d3.max(socioData, d => d[attribute])])
-        .range([0, histWidth - 40]);
+        .range([0, width - 40]);
 
     const histogram = d3.histogram()
         .value(d => d[attribute])
@@ -155,7 +155,7 @@ function updateHistogram(attribute) {
 
     const histYScale = d3.scaleLinear()
         .domain([0, d3.max(bins, d => d.length)])
-        .range([histHeight - 100, 0]);
+        .range([height - 100, 0]);
 
     histSvg.select('.x-axis')
         .call(d3.axisBottom(histXScale).ticks(10));
