@@ -5,34 +5,63 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Economic Data in US</title>
   <link rel="icon" href="data:;base64,iVBORwOKGO=" />
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <header>
+  <header class="bg-primary text-white text-center py-3">
     <h1>US Economic Data Visualization</h1>
     <p>Explore how economic factors such as income, education, and health insurance impact different counties across the United States.</p>
+    <p>Developed by Andrew T. Pipo</p>
   </header>
   
-  <main>
-    <section class="visualization">
+  <main class="container mt-4 text-center">
+    <section class="visualization mb-5">
       <h2>Choropleth Map</h2>
       <div class="viz"></div>
-      <svg height="5" width="5" xmlns="http://www.w3.org/2000/svg" version="1.1"> <defs> <pattern id="lightstripe" patternUnits="userSpaceOnUse" width="5" height="5"> <image xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc1JyBoZWlnaHQ9JzUnPgogIDxyZWN0IHdpZHRoPSc1JyBoZWlnaHQ9JzUnIGZpbGw9J3doaXRlJy8+CiAgPHBhdGggZD0nTTAgNUw1IDBaTTYgNEw0IDZaTS0xIDFMMSAtMVonIHN0cm9rZT0nIzg4OCcgc3Ryb2tlLXdpZHRoPScxJy8+Cjwvc3ZnPg==" x="0" y="0" width="5" height="5"> </image> </pattern> </defs></svg>
-
+      <svg height="5" width="5" xmlns="http://www.w3.org/2000/svg" version="1.1"> 
+        <defs> 
+          <pattern id="lightstripe" patternUnits="userSpaceOnUse" width="5" height="5"> 
+            <image xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc1JyBoZWlnaHQ9JzUnPgogIDxyZWN0IHdpZHRoPSc1JyBoZWlnaHQ9JzUnIGZpbGw9J3doaXRlJy8+CiAgPHBhdGggZD0nTTAgNUw1IDBaTTYgNEw0IDZaTS0xIDFMMSAtMVonIHN0cm9rZT0nIzg4OCcgc3Ryb2tlLXdpZHRoPScxJy8+Cjwvc3ZnPg==" x="0" y="0" width="5" height="5"> </image> 
+          </pattern> 
+        </defs>
+      </svg>
       <div id="tooltip"></div>
       <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/d3/5.7.0/d3.min.js"></script>
     </section>
     
-    <section class="charts">
+    <section class="charts text-center">
       <h2>Data Insights</h2>
+      <!-- UI Controls -->
+      <div class="controls">
+        <label>Select Attribute: </label>
+        <select id="attribute-select">
+            <option value="EducationLessThanHighSchoolPercent">Education < High School (%)</option>
+            <option value="PovertyPercent">Poverty (%)</option>
+            <option value="NoHealthInsurancePercent">No Health Insurance (%)</option>
+        </select>
+      </div>
+
+      <script>
+        document.getElementById('attribute-select').addEventListener('change', function () {
+            updateScatterPlot(this.value);
+            updateHistogram(this.value);
+            // updateChoropleth(this.value); // Remove this line to prevent updating the choropleth
+        });
+      </script>
+
       <div id="chart-container"></div>
     </section>
   </main>
   
-  <footer>
+  <footer class="bg-light text-center py-3">
     <p>Data sourced from national socioeconomic datasets. Visualization powered by D3.js.</p>
   </footer>
 
+  <!-- Load Bootstrap JS -->
+  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
   <!-- Load D3 v6 from CDN -->
   <script src="js/d3.v6.min.js"></script>
   <!-- Load TopoJSON -->
