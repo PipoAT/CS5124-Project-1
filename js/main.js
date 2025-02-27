@@ -15,6 +15,9 @@ d3.csv('data/national_health_data_2024.csv').then(data => {
     socioData = data;
     initializeScatterPlot();
     updateScatterPlot('EducationLessThanHighSchoolPercent');
+    initializeHistogram();
+    updateHistogram('EducationLessThanHighSchoolPercent');
+    updateChoropleth('EducationLessThanHighSchoolPercent');
 });
 
 // ** Initialize Scatterplot Once **
@@ -99,20 +102,20 @@ function initializeHistogram() {
     d3.select('.histogram').remove(); // Remove any existing SVG
 
     const histSvg = d3.select('body').append('svg')
-        .attr('width', histWidth + histMargin.left + histMargin.right)
-        .attr('height', histHeight + histMargin.top + histMargin.bottom)
+        .attr('width', width + margin.left + margin.right)
+        .attr('height', height + margin.top + margin.bottom)
         .attr('class', 'histogram')
         .append('g')
-        .attr('transform', `translate(${histMargin.left},${histMargin.top})`);
+        .attr('transform', `translate(${margin.left},${margin.top})`);
 
     histSvg.append('g').attr('class', 'x-axis')
-        .attr('transform', `translate(0, ${histHeight - 100})`);
+        .attr('transform', `translate(0, ${height - 100})`);
 
     histSvg.append('g').attr('class', 'y-axis');
 
     histSvg.append('text')
         .attr('class', 'hist-title')
-        .attr('x', histWidth / 2)
+        .attr('x', width / 2)
         .attr('y', -10)
         .attr('text-anchor', 'middle')
         .attr('font-size', '18px')
@@ -121,14 +124,14 @@ function initializeHistogram() {
 
     histSvg.append('text')
         .attr('class', 'x-label')
-        .attr('x', histWidth / 2)
-        .attr('y', histHeight - 60)
+        .attr('x', width / 2)
+        .attr('y', height - 60)
         .attr('text-anchor', 'middle')
         .attr('font-size', '16px');
 
     histSvg.append('text')
         .attr('class', 'y-label')
-        .attr('x', -histHeight / 2)
+        .attr('x', -height / 2)
         .attr('y', -50)
         .attr('transform', 'rotate(-90)')
         .attr('text-anchor', 'middle')
@@ -140,19 +143,19 @@ function updateHistogram(attribute) {
     const histSvg = d3.select('.histogram g');
 
     const histXScale = d3.scaleLinear()
-        .domain([0, d3.max(histoData, d => d[attribute])])
-        .range([0, histWidth - 40]);
+        .domain([0, d3.max(socioData, d => d[attribute])])
+        .range([0, width - 40]);
 
     const histogram = d3.histogram()
         .value(d => d[attribute])
         .domain(histXScale.domain())
         .thresholds(histXScale.ticks(20));
 
-    const bins = histogram(histoData);
+    const bins = histogram(socioData);
 
     const histYScale = d3.scaleLinear()
         .domain([0, d3.max(bins, d => d.length)])
-        .range([histHeight - 100, 0]);
+        .range([height - 100, 0]);
 
     histSvg.select('.x-axis')
         .call(d3.axisBottom(histXScale).ticks(10));
@@ -170,9 +173,59 @@ function updateHistogram(attribute) {
         .attr('x', d => histXScale(d.x0))
         .attr('y', d => histYScale(d.length))
         .attr('width', d => Math.max(1, histXScale(d.x1) - histXScale(d.x0) - 1))
-        .attr('height', d => histHeight - 100 - histYScale(d.length))
+        .attr('height', d => height - 100 - histYScale(d.length))
         .attr('fill', '#4682B4')
         .style('opacity', 0.7);
 
     bars.exit().remove();
+}
+
+
+// Choropleth Map
+function updateChoropleth(attribute) {
+    d3.select('.choropleth').remove();
+    Promise.all([
+        d3.json('data/counties-10m.json'),
+        d3.csv('data/national_health_data_2024.csv')
+    ]).then(data => {
+        const geoData = data[0];
+        const countyPopulationData = data[1];
+        console.log("County pop data:", countyPopulationData[0]);
+        
+        // Merge population data with county geometries
+        geoData.objects.counties.geometries.forEach(d => {
+            for (let i = 0; i < countyPopulationData.length; i++) {
+                if (String(d.id) === countyPopulationData[i].cnty_fips) {
+                    d.properties.income = +countyPopulationData[i].median_household_income;
+                    d.properties.poverty = +countyPopulationData[i].poverty_perc;
+                    d.properties.education = +countyPopulationData[i].education_less_than_high_school_percent;
+                }
+            }
+        });
+
+        const choroplethSvg = d3.select('body').append('svg')
+            .attr('class', 'choropleth');
+
+        const colorScale = d3.scaleQuantize()
+            .domain([0, d3.max(countyPopulationData, d => +d[attribute])])
+            .range(d3.schemeBlues[9]);
+
+        const path = d3.geoPath();
+        console.log(geoData);
+        choroplethSvg.selectAll('path')
+            .data(geoData, geoData.objects.counties)
+            .enter().append('path')
+            .attr('d', path)
+            .attr('fill', d => colorScale(d.properties[attribute]))
+            .attr('stroke', '#fff')
+            .attr('stroke-width', 0.5)
+            .transition()  // Ensure transition is applied after elements are added
+            .duration(1000)
+            .attr('fill', d => colorScale(d.properties[attribute]));
+
+        const choroplethMap = new ChoroplethMap({ 
+            parentElement: '.viz',   
+        }, geoData);
+
+    }).catch(error => console.error(error));
 }
