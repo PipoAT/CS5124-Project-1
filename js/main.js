@@ -140,7 +140,7 @@ function updateHistogram(attribute) {
     const histSvg = d3.select('.histogram g');
 
     const histXScale = d3.scaleLinear()
-        .domain([0, d3.max(histoData, d => d[attribute])])
+        .domain([0, d3.max(socioData, d => d[attribute])])
         .range([0, histWidth - 40]);
 
     const histogram = d3.histogram()
@@ -148,7 +148,7 @@ function updateHistogram(attribute) {
         .domain(histXScale.domain())
         .thresholds(histXScale.ticks(20));
 
-    const bins = histogram(histoData);
+    const bins = histogram(socioData);
 
     const histYScale = d3.scaleLinear()
         .domain([0, d3.max(bins, d => d.length)])
@@ -176,3 +176,53 @@ function updateHistogram(attribute) {
 
     bars.exit().remove();
 }
+
+
+// Choropleth Map
+
+d3.select('.choropleth').remove();
+Promise.all([
+    d3.json('data/counties-10m.json'),
+    d3.csv('data/national_health_data_2024.csv')
+]).then(data => {
+    const geoData = data[0];
+    const countyPopulationData = data[1];
+    console.log("County pop data:", countyPopulationData[0]);
+    
+    // Merge population data with county geometries
+    geoData.objects.counties.geometries.forEach(d => {
+        for (let i = 0; i < countyPopulationData.length; i++) {
+            if (String(d.id) === countyPopulationData[i].cnty_fips) {
+                d.properties.income = +countyPopulationData[i].median_household_income;
+                d.properties.poverty = +countyPopulationData[i].poverty_perc;
+                d.properties.education = +countyPopulationData[i].education_less_than_high_school_percent;
+            }
+        }
+    });
+
+    const choroplethSvg = d3.select('body').append('svg')
+        .attr('class', 'choropleth');
+
+    const colorScale = d3.scaleQuantize()
+        .domain([0, d3.max(countyPopulationData, d => +d[attribute])])
+        .range(d3.schemeBlues[9]);
+
+    const path = d3.geoPath();
+    console.log(geoData);
+    choroplethSvg.selectAll('path')
+        .data(geoData, geoData.objects.counties)
+        .enter().append('path')
+        .attr('d', path)
+        .attr('fill', d => colorScale(d.properties[attribute]))
+        .attr('stroke', '#fff')
+        .attr('stroke-width', 0.5)
+        .transition()  // Ensure transition is applied after elements are added
+        .duration(1000)
+        .attr('fill', d => colorScale(d.properties[attribute]));
+
+    const choroplethMap = new ChoroplethMap({ 
+        parentElement: '.viz',   
+    }, geoData);
+
+}).catch(error => console.error(error));
+
