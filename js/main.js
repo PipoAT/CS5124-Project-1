@@ -106,7 +106,7 @@ function initializeHistogram() {
         .attr('height', height + margin.top + margin.bottom)
         .attr('class', 'histogram')
         .append('g')
-        .attr('transform', `translate(${histMargin.left},${histMargin.top})`);
+        .attr('transform', `translate(${margin.left},${margin.top})`);
 
     histSvg.append('g').attr('class', 'x-axis')
         .attr('transform', `translate(0, ${height - 100})`);
