@@ -36,11 +36,22 @@
       <div class="controls">
         <label>Select Attribute: </label>
         <select id="attribute-select">
-            <option value="EducationLessThanHighSchoolPercent">Education < High School (%)</option>
-            <option value="PovertyPercent">Poverty (%)</option>
-            <option value="NoHealthInsurancePercent">No Health Insurance (%)</option>
+        <option value="EducationLessThanHighSchoolPercent">Education < High School (%)</option>
+        <option value="PovertyPercent">Poverty (%)</option>
+        <option value="NoHealthInsurancePercent">No Health Insurance (%)</option>
         </select>
+        <br>
+        <button id="reset-button" class="btn btn-secondary mt-2">Reset Graphics</button>
       </div>
+
+      <script>
+        document.getElementById('reset-button').addEventListener('click', function () {
+        // Add your reset logic here
+        updateScatterPlot('EducationLessThanHighSchoolPercent');
+        updateHistogram('EducationLessThanHighSchoolPercent');
+        // updateChoropleth('EducationLessThanHighSchoolPercent'); // Uncomment if needed
+        });
+      </script>
 
       <script>
         document.getElementById('attribute-select').addEventListener('change', function () {
