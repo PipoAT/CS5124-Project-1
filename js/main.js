@@ -102,8 +102,8 @@ function initializeHistogram() {
     d3.select('.histogram').remove(); // Remove any existing SVG
 
     const histSvg = d3.select('body').append('svg')
-        .attr('width', width + histMargin.left + histMargin.right)
-        .attr('height', height + histMargin.top + histMargin.bottom)
+        .attr('width', width + margin.left + margin.right)
+        .attr('height', height + margin.top + margin.bottom)
         .attr('class', 'histogram')
         .append('g')
         .attr('transform', `translate(${histMargin.left},${histMargin.top})`);
