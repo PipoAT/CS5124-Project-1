@@ -102,20 +102,20 @@ function initializeHistogram() {
     d3.select('.histogram').remove(); // Remove any existing SVG
 
     const histSvg = d3.select('body').append('svg')
-        .attr('width', histWidth + histMargin.left + histMargin.right)
-        .attr('height', histHeight + histMargin.top + histMargin.bottom)
+        .attr('width', width + histMargin.left + histMargin.right)
+        .attr('height', height + histMargin.top + histMargin.bottom)
         .attr('class', 'histogram')
         .append('g')
         .attr('transform', `translate(${histMargin.left},${histMargin.top})`);
 
     histSvg.append('g').attr('class', 'x-axis')
-        .attr('transform', `translate(0, ${histHeight - 100})`);
+        .attr('transform', `translate(0, ${height - 100})`);
 
     histSvg.append('g').attr('class', 'y-axis');
 
     histSvg.append('text')
         .attr('class', 'hist-title')
-        .attr('x', histWidth / 2)
+        .attr('x', width / 2)
         .attr('y', -10)
         .attr('text-anchor', 'middle')
         .attr('font-size', '18px')
@@ -124,14 +124,14 @@ function initializeHistogram() {
 
     histSvg.append('text')
         .attr('class', 'x-label')
-        .attr('x', histWidth / 2)
-        .attr('y', histHeight - 60)
+        .attr('x', width / 2)
+        .attr('y', height - 60)
         .attr('text-anchor', 'middle')
         .attr('font-size', '16px');
 
     histSvg.append('text')
         .attr('class', 'y-label')
-        .attr('x', -histHeight / 2)
+        .attr('x', -height / 2)
         .attr('y', -50)
         .attr('transform', 'rotate(-90)')
         .attr('text-anchor', 'middle')
@@ -173,7 +173,7 @@ function updateHistogram(attribute) {
         .attr('x', d => histXScale(d.x0))
         .attr('y', d => histYScale(d.length))
         .attr('width', d => Math.max(1, histXScale(d.x1) - histXScale(d.x0) - 1))
-        .attr('height', d => histHeight - 100 - histYScale(d.length))
+        .attr('height', d => height - 100 - histYScale(d.length))
         .attr('fill', '#4682B4')
         .style('opacity', 0.7);
 
