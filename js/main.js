@@ -20,7 +20,7 @@ d3.csv('data/national_health_data_2024.csv').then(data => {
     updateChoropleth('EducationLessThanHighSchoolPercent');
 });
 
-// Initialize Scatterplot Once
+// ** Initialize Scatterplot Once **
 function initializeScatterPlot() {
     d3.select('.scatterplot').remove(); // Remove any existing SVG
     const scatterPlotSvg = d3.select('body').append('svg')
@@ -59,15 +59,9 @@ function initializeScatterPlot() {
         .attr('transform', 'rotate(-90)')
         .attr('text-anchor', 'middle')
         .attr('font-size', '16px');
-
-    // Initialize tooltip
-    const scatterTooltip = d3.tip()
-        .attr('class', 'd3-tip')
-        .html(d => `Income: ${d.MedianHouseholdIncome}<br>${yAttribute}: ${d[yAttribute]}`);
-    scatterPlotSvg.call(scatterTooltip);
 }
 
-// Update Scatterplot Without Duplicating Elements
+// ** Update Scatterplot Without Duplicating Elements **
 function updateScatterPlot(yAttribute) {
     const scatterPlotSvg = d3.select('.scatterplot g');
 
@@ -98,38 +92,73 @@ function updateScatterPlot(yAttribute) {
         .attr('r', 5)
         .attr('fill', '#4682B4')
         .attr('stroke', '#fff')
-        .style('opacity', 0.7)
-        .on('mouseover', scatterTooltip.show)
-        .on('mouseout', scatterTooltip.hide);
+        .style('opacity', 0.7);
 
     circles.exit().remove();
 
     // Add brush to scatterplot
     const brush = d3.brush()
-        .extent([[0, 0], [width, height]])
-        .on('end', function brushEnded(event) {
+    .extent([[0, 0], [width, height]])
+    .on('end', 
+
+        function brushEnded(event) {
             if (!event.selection) return; // Ignore empty selections
             const [[x0, y0], [x1, y1]] = event.selection;
-
+        
             const brushedData = socioData.filter(d =>
                 scatterXScale(d.MedianHouseholdIncome) >= x0 &&
                 scatterXScale(d.MedianHouseholdIncome) <= x1 &&
                 scatterYScale(d[yAttribute]) >= y0 &&
                 scatterYScale(d[yAttribute]) <= y1
             );
-
+        
             // Update visualizations based on brushed data
             updateScatterPlotWithBrush(brushedData, yAttribute);
             updateHistogramWithBrush(brushedData, yAttribute);
             updateChoroplethWithBrush(brushedData, yAttribute);
-        });
+        }
+        
+    );
 
     scatterPlotSvg.append('g')
-        .attr('class', 'brush')
-        .call(brush);
+    .attr('class', 'brush')
+    .call(brush);
 }
 
-// Initialize Histogram Once
+// ** Update Scatterplot with Brushed Data **
+function updateScatterPlotWithBrush(brushedData, yAttribute) {
+    const scatterPlotSvg = d3.select('.scatterplot g');
+
+    const scatterXScale = d3.scaleLinear()
+        .domain([0, d3.max(brushedData, d => d.MedianHouseholdIncome)])
+        .range([0, width - 40]);
+
+    const scatterYScale = d3.scaleLinear()
+        .domain([0, d3.max(brushedData, d => d[yAttribute])])
+        .range([height - 100, 0]);
+
+    scatterPlotSvg.select('.x-axis')
+        .call(d3.axisBottom(scatterXScale).ticks(10));
+
+    scatterPlotSvg.select('.y-axis')
+        .call(d3.axisLeft(scatterYScale).ticks(5));
+
+    const circles = scatterPlotSvg.selectAll('circle').data(brushedData);
+
+    circles.enter()
+        .append('circle')
+        .merge(circles)
+        .attr('cx', d => scatterXScale(d.MedianHouseholdIncome))
+        .attr('cy', d => scatterYScale(d[yAttribute]))
+        .attr('r', 5)
+        .attr('fill', '#4682B4')
+        .attr('stroke', '#fff')
+        .style('opacity', 0.7);
+
+    circles.exit().remove();
+}
+
+// ** Initialize Histogram Once **
 function initializeHistogram() {
     d3.select('.histogram').remove(); // Remove any existing SVG
 
@@ -168,15 +197,9 @@ function initializeHistogram() {
         .attr('transform', 'rotate(-90)')
         .attr('text-anchor', 'middle')
         .attr('font-size', '16px');
-
-    // Initialize tooltip
-    const histTooltip = d3.tip()
-        .attr('class', 'd3-tip')
-        .html(d => `Count: ${d.length}<br>${attribute}: ${d.x0} - ${d.x1}`);
-    histSvg.call(histTooltip);
 }
 
-// Update Histogram Without Duplicating Elements
+// ** Update Histogram Without Duplicating Elements **
 function updateHistogram(attribute) {
     const histSvg = d3.select('.histogram g');
 
@@ -202,6 +225,48 @@ function updateHistogram(attribute) {
         .call(d3.axisLeft(histYScale).ticks(5));
 
     histSvg.select('.x-label').text(attribute);
+    
+    const bars = histSvg.selectAll('rect').data(bins);
+
+    bars.enter()
+        .append('rect')
+        .merge(bars)
+        .attr('x', d => histXScale(d.x0))
+        .attr('y', d => histYScale(d.length))
+        .attr('width', d => Math.max(1, histXScale(d.x1) - histXScale(d.x0) - 1))
+        .attr('height', d => height - 100 - histYScale(d.length))
+        .attr('fill', '#4682B4')
+        .style('opacity', 0.7);
+
+    bars.exit().remove();
+}
+
+// ** Update Histogram with Brushed Data **
+function updateHistogramWithBrush(brushedData, yAttribute) {
+    const histSvg = d3.select('.histogram g');
+
+    const histXScale = d3.scaleLinear()
+        .domain([0, d3.max(brushedData, d => d[yAttribute])])
+        .range([0, width - 40]);
+
+    const histogram = d3.histogram()
+        .value(d => d[yAttribute])
+        .domain(histXScale.domain())
+        .thresholds(histXScale.ticks(20));
+
+    const bins = histogram(brushedData);
+
+    const histYScale = d3.scaleLinear()
+        .domain([0, d3.max(bins, d => d.length)])
+        .range([height - 100, 0]);
+
+    histSvg.select('.x-axis')
+        .call(d3.axisBottom(histXScale).ticks(10));
+
+    histSvg.select('.y-axis')
+        .call(d3.axisLeft(histYScale).ticks(5));
+
+    histSvg.select('.x-label').text(yAttribute);
 
     const bars = histSvg.selectAll('rect').data(bins);
 
@@ -213,9 +278,105 @@ function updateHistogram(attribute) {
         .attr('width', d => Math.max(1, histXScale(d.x1) - histXScale(d.x0) - 1))
         .attr('height', d => height - 100 - histYScale(d.length))
         .attr('fill', '#4682B4')
-        .style('opacity', 0.7)
-        .on('mouseover', histTooltip.show)
-        .on('mouseout', histTooltip.hide);
+        .style('opacity', 0.7);
 
     bars.exit().remove();
+}
+
+// Choropleth Map
+function updateChoropleth(attribute) {
+    d3.select('.choropleth').remove();
+    Promise.all([
+        d3.json('data/counties-10m.json'),
+        d3.csv('data/national_health_data_2024.csv')
+    ]).then(data => {
+        const geoData = data[0];
+        const countyPopulationData = data[1];
+        console.log("County pop data:", countyPopulationData[0]);
+        
+        // Merge population data with county geometries
+        geoData.objects.counties.geometries.forEach(d => {
+            for (let i = 0; i < countyPopulationData.length; i++) {
+                if (String(d.id) === countyPopulationData[i].cnty_fips) {
+                    d.properties.income = +countyPopulationData[i].median_household_income;
+                    d.properties.poverty = +countyPopulationData[i].poverty_perc;
+                    d.properties.education = +countyPopulationData[i].education_less_than_high_school_percent;
+                }
+            }
+        });
+
+        const choroplethSvg = d3.select('body').append('svg')
+            .attr('class', 'choropleth');
+
+        const colorScale = d3.scaleQuantize()
+            .domain([0, d3.max(countyPopulationData, d => +d[attribute])])
+            .range(d3.schemeBlues[9]);
+
+        const path = d3.geoPath();
+        console.log(geoData);
+        choroplethSvg.selectAll('path')
+            .data(geoData, geoData.objects.counties)
+            .enter().append('path')
+            .attr('d', path)
+            .attr('fill', d => colorScale(d.properties[attribute]))
+            .attr('stroke', '#fff')
+            .attr('stroke-width', 0.5)
+            .transition()  // Ensure transition is applied after elements are added
+            .duration(1000)
+            .attr('fill', d => colorScale(d.properties[attribute]));
+
+        const choroplethMap = new ChoroplethMap({ 
+            parentElement: '.viz',   
+        }, geoData);
+
+    }).catch(error => console.error(error));
+}
+
+// ** Update Choropleth with Brushed Data **
+function updateChoroplethWithBrush(brushedData, yAttribute) {
+    d3.select('.choropleth').remove();
+
+    Promise.all([
+        d3.json('data/counties-10m.json'),
+        d3.csv('data/national_health_data_2024.csv')
+    ]).then(data => {
+        const geoData = data[0];
+        const countyPopulationData = brushedData;
+        
+        // Merge population data with county geometries
+        geoData.objects.counties.geometries.forEach(d => {
+            for (let i = 0; i < countyPopulationData.length; i++) {
+                if (String(d.id) === countyPopulationData[i].cnty_fips) {
+                    d.properties.income = +countyPopulationData[i].median_household_income;
+                    d.properties.poverty = +countyPopulationData[i].poverty_perc;
+                    d.properties.education = +countyPopulationData[i].education_less_than_high_school_percent;
+                }
+            }
+        });
+
+        const choroplethSvg = d3.select('body').append('svg')
+            .attr('class', 'choropleth');
+
+        const colorScale = d3.scaleQuantize()
+            .domain([0, d3.max(countyPopulationData, d => +d[yAttribute])])
+            .range(d3.schemeBlues[9]);
+
+        const path = d3.geoPath();
+
+        choroplethSvg.selectAll('path')
+            .data(geoData, geoData.objects.counties)
+            .enter().append('path')
+            .attr('d', path)
+            .attr('fill', d => colorScale(d.properties[yAttribute]))
+            .attr('stroke', '#fff')
+            .attr('stroke-width', 0.5)
+            .transition()  // Ensure transition is applied after elements are added
+            .duration(1000)
+            .attr('fill', d => colorScale(d.properties[yAttribute]));
+
+        const choroplethMap = new ChoroplethMap({ 
+            parentElement: '.viz',   
+        }, geoData);
+
+    }).catch(error => console.error(error));
 }
