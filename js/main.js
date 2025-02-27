@@ -106,6 +106,39 @@ function updateScatterPlot(yAttribute) {
     .call(brush);
 }
 
+// ** Update Scatterplot with Brushed Data **
+function updateScatterPlotWithBrush(brushedData) {
+    const scatterPlotSvg = d3.select('.scatterplot g');
+
+    const scatterXScale = d3.scaleLinear()
+        .domain([0, d3.max(brushedData, d => d.MedianHouseholdIncome)])
+        .range([0, width - 40]);
+
+    const scatterYScale = d3.scaleLinear()
+        .domain([0, d3.max(brushedData, d => d[yAttribute])])
+        .range([height - 100, 0]);
+
+    scatterPlotSvg.select('.x-axis')
+        .call(d3.axisBottom(scatterXScale).ticks(10));
+
+    scatterPlotSvg.select('.y-axis')
+        .call(d3.axisLeft(scatterYScale).ticks(5));
+
+    const circles = scatterPlotSvg.selectAll('circle').data(brushedData);
+
+    circles.enter()
+        .append('circle')
+        .merge(circles)
+        .attr('cx', d => scatterXScale(d.MedianHouseholdIncome))
+        .attr('cy', d => scatterYScale(d[yAttribute]))
+        .attr('r', 5)
+        .attr('fill', '#4682B4')
+        .attr('stroke', '#fff')
+        .style('opacity', 0.7);
+
+    circles.exit().remove();
+}
+
 // ** Initialize Histogram Once **
 function initializeHistogram() {
     d3.select('.histogram').remove(); // Remove any existing SVG
@@ -189,17 +222,58 @@ function updateHistogram(attribute) {
     bars.exit().remove();
 }
 
+// ** Update Histogram with Brushed Data **
+function updateHistogramWithBrush(brushedData) {
+    const histSvg = d3.select('.histogram g');
 
-// Choropleth Map
-function updateChoropleth(attribute) {
+    const histXScale = d3.scaleLinear()
+        .domain([0, d3.max(brushedData, d => d[yAttribute])])
+        .range([0, width - 40]);
+
+    const histogram = d3.histogram()
+        .value(d => d[yAttribute])
+        .domain(histXScale.domain())
+        .thresholds(histXScale.ticks(20));
+
+    const bins = histogram(brushedData);
+
+    const histYScale = d3.scaleLinear()
+        .domain([0, d3.max(bins, d => d.length)])
+        .range([height - 100, 0]);
+
+    histSvg.select('.x-axis')
+        .call(d3.axisBottom(histXScale).ticks(10));
+
+    histSvg.select('.y-axis')
+        .call(d3.axisLeft(histYScale).ticks(5));
+
+    histSvg.select('.x-label').text(yAttribute);
+
+    const bars = histSvg.selectAll('rect').data(bins);
+
+    bars.enter()
+        .append('rect')
+        .merge(bars)
+        .attr('x', d => histXScale(d.x0))
+        .attr('y', d => histYScale(d.length))
+        .attr('width', d => Math.max(1, histXScale(d.x1) - histXScale(d.x0) - 1))
+        .attr('height', d => height - 100 - histYScale(d.length))
+        .attr('fill', '#4682B4')
+        .style('opacity', 0.7);
+
+    bars.exit().remove();
+}
+
+// ** Update Choropleth with Brushed Data **
+function updateChoroplethWithBrush(brushedData) {
     d3.select('.choropleth').remove();
+
     Promise.all([
         d3.json('data/counties-10m.json'),
         d3.csv('data/national_health_data_2024.csv')
     ]).then(data => {
         const geoData = data[0];
-        const countyPopulationData = data[1];
-        console.log("County pop data:", countyPopulationData[0]);
+        const countyPopulationData = brushedData;
         
         // Merge population data with county geometries
         geoData.objects.counties.geometries.forEach(d => {
@@ -216,21 +290,21 @@ function updateChoropleth(attribute) {
             .attr('class', 'choropleth');
 
         const colorScale = d3.scaleQuantize()
-            .domain([0, d3.max(countyPopulationData, d => +d[attribute])])
+            .domain([0, d3.max(countyPopulationData, d => +d[yAttribute])])
             .range(d3.schemeBlues[9]);
 
         const path = d3.geoPath();
-        console.log(geoData);
+
         choroplethSvg.selectAll('path')
             .data(geoData, geoData.objects.counties)
             .enter().append('path')
             .attr('d', path)
-            .attr('fill', d => colorScale(d.properties[attribute]))
+            .attr('fill', d => colorScale(d.properties[yAttribute]))
             .attr('stroke', '#fff')
             .attr('stroke-width', 0.5)
             .transition()  // Ensure transition is applied after elements are added
             .duration(1000)
-            .attr('fill', d => colorScale(d.properties[attribute]));
+            .attr('fill', d => colorScale(d.properties[yAttribute]));
 
         const choroplethMap = new ChoroplethMap({ 
             parentElement: '.viz',   
@@ -238,8 +312,6 @@ function updateChoropleth(attribute) {
 
     }).catch(error => console.error(error));
 }
-
-
 
 function brushEnded(event) {
     if (!event.selection) return; // Ignore empty selections
