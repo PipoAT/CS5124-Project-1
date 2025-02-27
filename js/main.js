@@ -229,3 +229,29 @@ function updateChoropleth(attribute) {
 
     }).catch(error => console.error(error));
 }
+
+// Add brush to scatterplot
+const brush = d3.brush()
+    .extent([[0, 0], [width, height]])
+    .on('end', brushEnded);
+
+scatterPlotSvg.append('g')
+    .attr('class', 'brush')
+    .call(brush);
+
+function brushEnded(event) {
+    if (!event.selection) return; // Ignore empty selections
+    const [[x0, y0], [x1, y1]] = event.selection;
+
+    const brushedData = socioData.filter(d =>
+        scatterXScale(d.MedianHouseholdIncome) >= x0 &&
+        scatterXScale(d.MedianHouseholdIncome) <= x1 &&
+        scatterYScale(d[yAttribute]) >= y0 &&
+        scatterYScale(d[yAttribute]) <= y1
+    );
+
+    // Update visualizations based on brushed data
+    updateScatterPlotWithBrush(brushedData);
+    updateHistogramWithBrush(brushedData);
+    updateChoroplethWithBrush(brushedData);
+}
