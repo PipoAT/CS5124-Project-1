@@ -95,6 +95,15 @@ function updateScatterPlot(yAttribute) {
         .style('opacity', 0.7);
 
     circles.exit().remove();
+
+    // Add brush to scatterplot
+    const brush = d3.brush()
+    .extent([[0, 0], [width, height]])
+    .on('end', brushEnded);
+
+    scatterPlotSvg.append('g')
+    .attr('class', 'brush')
+    .call(brush);
 }
 
 // ** Initialize Histogram Once **
@@ -230,14 +239,7 @@ function updateChoropleth(attribute) {
     }).catch(error => console.error(error));
 }
 
-// Add brush to scatterplot
-const brush = d3.brush()
-    .extent([[0, 0], [width, height]])
-    .on('end', brushEnded);
 
-scatterPlotSvg.append('g')
-    .attr('class', 'brush')
-    .call(brush);
 
 function brushEnded(event) {
     if (!event.selection) return; // Ignore empty selections
