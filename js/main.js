@@ -115,7 +115,6 @@ function updateScatterPlot(yAttribute) {
             // Update visualizations based on brushed data
             updateScatterPlotWithBrush(brushedData, yAttribute);
             updateHistogramWithBrush(brushedData, yAttribute);
-            updateChoroplethWithBrush(brushedData, yAttribute);
         }
         
     );
@@ -324,55 +323,6 @@ function updateChoropleth(attribute) {
             .transition()  // Ensure transition is applied after elements are added
             .duration(1000)
             .attr('fill', d => colorScale(d.properties[attribute]));
-
-        const choroplethMap = new ChoroplethMap({ 
-            parentElement: '.viz',   
-        }, geoData);
-
-    }).catch(error => console.error(error));
-}
-
-// ** Update Choropleth with Brushed Data **
-function updateChoroplethWithBrush(brushedData, yAttribute) {
-    d3.select('.choropleth').remove();
-
-    Promise.all([
-        d3.json('data/counties-10m.json'),
-        d3.csv('data/national_health_data_2024.csv')
-    ]).then(data => {
-        const geoData = data[0];
-        const countyPopulationData = brushedData;
-        
-        // Merge population data with county geometries
-        geoData.objects.counties.geometries.forEach(d => {
-            for (let i = 0; i < countyPopulationData.length; i++) {
-                if (String(d.id) === countyPopulationData[i].cnty_fips) {
-                    d.properties.income = +countyPopulationData[i].median_household_income;
-                    d.properties.poverty = +countyPopulationData[i].poverty_perc;
-                    d.properties.education = +countyPopulationData[i].education_less_than_high_school_percent;
-                }
-            }
-        });
-
-        const choroplethSvg = d3.select('body').append('svg')
-            .attr('class', 'choropleth');
-
-        const colorScale = d3.scaleQuantize()
-            .domain([0, d3.max(countyPopulationData, d => +d[yAttribute])])
-            .range(d3.schemeBlues[9]);
-
-        const path = d3.geoPath();
-
-        choroplethSvg.selectAll('path')
-            .data(geoData, geoData.objects.counties)
-            .enter().append('path')
-            .attr('d', path)
-            .attr('fill', d => colorScale(d.properties[yAttribute]))
-            .attr('stroke', '#fff')
-            .attr('stroke-width', 0.5)
-            .transition()  // Ensure transition is applied after elements are added
-            .duration(1000)
-            .attr('fill', d => colorScale(d.properties[yAttribute]));
 
         const choroplethMap = new ChoroplethMap({ 
             parentElement: '.viz',   
