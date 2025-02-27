@@ -113,9 +113,9 @@ function updateScatterPlot(yAttribute) {
             );
         
             // Update visualizations based on brushed data
-            updateScatterPlotWithBrush(brushedData);
-            updateHistogramWithBrush(brushedData);
-            updateChoroplethWithBrush(brushedData);
+            updateScatterPlotWithBrush(brushedData, yAttribute);
+            updateHistogramWithBrush(brushedData, yAttribute);
+            updateChoroplethWithBrush(brushedData, yAttribute);
         }
         
     );
@@ -126,7 +126,7 @@ function updateScatterPlot(yAttribute) {
 }
 
 // ** Update Scatterplot with Brushed Data **
-function updateScatterPlotWithBrush(brushedData) {
+function updateScatterPlotWithBrush(brushedData, yAttribute) {
     const scatterPlotSvg = d3.select('.scatterplot g');
 
     const scatterXScale = d3.scaleLinear()
@@ -242,7 +242,7 @@ function updateHistogram(attribute) {
 }
 
 // ** Update Histogram with Brushed Data **
-function updateHistogramWithBrush(brushedData) {
+function updateHistogramWithBrush(brushedData, yAttribute) {
     const histSvg = d3.select('.histogram g');
 
     const histXScale = d3.scaleLinear()
@@ -333,7 +333,7 @@ function updateChoropleth(attribute) {
 }
 
 // ** Update Choropleth with Brushed Data **
-function updateChoroplethWithBrush(brushedData) {
+function updateChoroplethWithBrush(brushedData, yAttribute) {
     d3.select('.choropleth').remove();
 
     Promise.all([
